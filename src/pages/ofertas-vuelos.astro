@@ -1,0 +1,72 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import AviancaSearchBar from '../components/AviancaSearchBar.astro';
+import AviancaBookingChrome from '../components/offers/AviancaBookingChrome.astro';
+import OffersBoard from '../components/offers/OffersBoard.astro';
+import { getHomePageData } from '../services/api';
+import { parseOffersQuery } from '../services/searchQuery';
+
+const home = await getHomePageData();
+const query = parseOffersQuery(Astro.url.searchParams);
+const origin = query.origin;
+const destination = query.destination;
+const from = home.cities.find((c) => c.code === origin) ?? { city: origin || 'Origen', code: origin || '—' };
+const to = home.cities.find((c) => c.code === destination) ?? { city: destination || 'Destino', code: destination || '—' };
+const waiting = Boolean(origin && destination);
+const depart = query.depart;
+const returnDate = query.returnDate;
+---
+
+<Layout title="Selección de vuelos | Avianca Guatemala" bodyClass={`${waiting ? 'is-offers-waiting' : ''} is-offers-page av-booking-page`.trim()}>
+  {waiting && (
+    <div class="offers-wait-screen" id="offers-wait-screen" role="status" aria-live="polite" aria-label="Cargando">
+      <img class="offers-wait-screen__logo" src="/images/avianca/loader.svg?v=hair3" alt="" width="100" height="100" />
+      <p class="offers-wait-screen__text">Cargando...</p>
+    </div>
+  )}
+
+  <AviancaBookingChrome
+    origin={from.code}
+    destination={to.code}
+    depart={depart}
+    returnDate={returnDate}
+    trip={query.trip}
+    adults={Number(query.adults)}
+    children={Number(query.children)}
+    infants={Number(query.infants)}
+    startOpen={!waiting}
+  >
+    <AviancaSearchBar
+      cities={home.cities}
+      embedded
+      prefill={waiting ? {
+        origin,
+        destination,
+        depart,
+        returnDate,
+        trip: query.trip,
+        adults: query.adults,
+        children: query.children,
+        infants: query.infants,
+      } : undefined}
+    />
+  </AviancaBookingChrome>
+
+  <div class="offers-scroll">
+    <main class="offers-main av-book-main">
+      <OffersBoard
+        trip={query.trip}
+        search={waiting ? Astro.url.search : ''}
+        fromCity={from.city}
+        toCity={to.city}
+        origin={from.code}
+        destination={to.code}
+        depart={depart}
+        returnDate={returnDate}
+      />
+      <p class="av-book-copy">© Avianca S.A. 2026</p>
+    </main>
+  </div>
+</Layout>

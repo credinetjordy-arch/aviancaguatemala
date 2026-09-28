@@ -1,0 +1,38 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import AviancaBookingChrome from '../components/offers/AviancaBookingChrome.astro';
+import PaymentBoard from '../components/checkout/PaymentBoard.astro';
+import { getHomePageData } from '../services/api';
+import { parseOffersQuery } from '../services/searchQuery';
+
+const home = await getHomePageData();
+const query = parseOffersQuery(Astro.url.searchParams);
+const origin = query.origin;
+const destination = query.destination;
+const from = home.cities.find((c) => c.code === origin) ?? { city: origin || 'Origen', code: origin || '—' };
+const to = home.cities.find((c) => c.code === destination) ?? { city: destination || 'Destino', code: destination || '—' };
+---
+
+<Layout title="Avianca | Pago" bodyClass="is-pagos-page av-booking-page">
+  <AviancaBookingChrome
+    origin={from.code}
+    destination={to.code}
+    depart={query.depart}
+    returnDate={query.returnDate}
+    trip={query.trip}
+    adults={Number(query.adults)}
+    children={Number(query.children)}
+    infants={Number(query.infants)}
+    currentStep={4}
+    compact
+  />
+  <p class="pagos-promo" role="status">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 11h-4V7h2v4h2v2Z"/></svg>
+    ¡Aprovecha este precio! Finaliza tu reserva antes de <strong id="pagos-promo-time">8:00</strong>
+  </p>
+  <div class="pagos-scroll av-pagos-scroll">
+    <PaymentBoard />
+  </div>
+</Layout>

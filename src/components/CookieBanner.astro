@@ -1,0 +1,28 @@
+---
+interface Props { text: string; accept: string; more: string }
+const { accept, more } = Astro.props;
+---
+
+<div class="av-cookie" id="cookie-banner">
+  <div class="av-cookie__copy">
+    <h2>Consentimiento de cookies</h2>
+    <p>
+      En avianca utilizamos cookies propias y de terceros con fines analíticos y a fin de garantizar la funcionalidad de la web, mejorar tu experiencia y mostrar publicidad relacionada con tus preferencias. Puedes "Aceptar" o seleccionar aquellas que quieras en "Configurar cookies". Para conocer más, consulta nuestra
+      <a href="/legal/cookies">{more}</a>.
+    </p>
+  </div>
+  <div class="av-cookie__actions">
+    <button type="button" class="av-cookie__link" id="cookie-config">Configurar cookies</button>
+    <button type="button" class="av-cookie__accept" id="accept-cookies">{accept}</button>
+  </div>
+</div>
+<script>
+  const el = document.getElementById('cookie-banner');
+  if (localStorage.getItem('latam-cookies') === '1') el?.classList.add('hidden');
+  function hide() {
+    localStorage.setItem('latam-cookies', '1');
+    el?.classList.add('hidden');
+  }
+  document.getElementById('accept-cookies')?.addEventListener('click', hide);
+  document.getElementById('cookie-config')?.addEventListener('click', hide);
+</script>

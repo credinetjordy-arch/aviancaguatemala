@@ -1,0 +1,49 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import AviancaBookingChrome from '../components/offers/AviancaBookingChrome.astro';
+import PassengerBoard from '../components/checkout/PassengerBoard.astro';
+import { getHomePageData } from '../services/api';
+import { parseOffersQuery } from '../services/searchQuery';
+
+const home = await getHomePageData();
+const query = parseOffersQuery(Astro.url.searchParams);
+const origin = query.origin;
+const destination = query.destination;
+const from = home.cities.find((c) => c.code === origin) ?? { city: origin || 'Origen', code: origin || '—' };
+const to = home.cities.find((c) => c.code === destination) ?? { city: destination || 'Destino', code: destination || '—' };
+---
+
+<Layout title="Avianca | Pasajeros" bodyClass="is-passengers-page av-booking-page is-offers-waiting">
+  <div class="offers-wait-screen" id="pax-wait-screen" role="status" aria-live="polite" aria-label="Cargando">
+    <img class="offers-wait-screen__logo" src="/images/avianca/loader.svg?v=hair3" alt="" width="100" height="100" />
+    <p class="offers-wait-screen__text">Cargando...</p>
+  </div>
+
+  <AviancaBookingChrome
+    origin={from.code}
+    destination={to.code}
+    depart={query.depart}
+    returnDate={query.returnDate}
+    trip={query.trip}
+    adults={Number(query.adults)}
+    children={Number(query.children)}
+    infants={Number(query.infants)}
+    currentStep={2}
+    compact
+  />
+
+  <div class="checkout-scroll av-pax-scroll">
+    <PassengerBoard />
+  </div>
+</Layout>
+
+<script>
+  window.setTimeout(() => {
+    const wait = document.getElementById('pax-wait-screen');
+    wait?.classList.add('hidden');
+    wait?.setAttribute('hidden', '');
+    document.body.classList.remove('is-offers-waiting');
+  }, 1800);
+</script>
