@@ -906,46 +906,66 @@ export async function fetchFlightApi(params: {
 
   const roundtrip = params.trip === 'roundtrip' && Boolean(params.returnDate);
   const url = roundtrip ? 'https://ignav.com/api/fares/round-trip' : 'https://ignav.com/api/fares/one-way';
-  const payload = {
+  const adults = Math.max(1, Number(params.adults || 1));
+  const children = Math.max(0, Number(params.children || 0));
+  const infants = Math.max(0, Number(params.infants || 0));
+
+  const bodyFor = (pax: { adults: number; infants_on_lap: number; infants_in_seat: number }) => ({
     origin: params.origin,
     destination: params.destination,
     departure_date: params.depart,
-    adults: Number(params.adults || 1),
-    children: Number(params.children || 0),
-    infants_on_lap: Number(params.infants || 0),
+    adults: pax.adults,
+    children: 0,
+    infants_on_lap: pax.infants_on_lap,
+    infants_in_seat: pax.infants_in_seat,
     cabin_class: ignavCabin(params.cabin),
     airlines_include: IGNAV_AIRLINES,
     allow_self_transfer: false,
     market: IGNAV_MARKET,
     max_stops: params.maxStops ?? 2,
     ...(roundtrip ? { return_date: params.returnDate } : {}),
-  };
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'X-Api-Key': key,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(28000),
   });
-  const body = await res.text();
-  if (res.status === 400 || res.status === 404 || res.status === 410 || res.status === 422) {
-    return { itineraries: [] };
-  }
-  if (!res.ok) {
-    throw new Error(`FlightAPI ${res.status}`);
+
+  async function postFares(payload: ReturnType<typeof bodyFor>) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': key,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(28000),
+    });
+    const body = await res.text();
+    if (res.status === 400 || res.status === 404 || res.status === 410 || res.status === 422 || res.status === 424) {
+      return { itineraries: [] } as FlightApiPayload;
+    }
+    if (!res.ok) {
+      throw new Error(`FlightAPI ${res.status}`);
+    }
+
+    let parsed: { itineraries?: unknown[]; error?: string; message?: string };
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      throw new Error('FlightAPI devolvió una respuesta inválida.');
+    }
+    if (parsed.error || (parsed.message && !parsed.itineraries)) {
+      throw new Error(String(parsed.error || parsed.message));
+    }
+    return { itineraries: parsed.itineraries || [] } as FlightApiPayload;
   }
 
-  let parsed: { itineraries?: unknown[]; error?: string; message?: string };
-  try {
-    parsed = JSON.parse(body);
-  } catch {
-    throw new Error('FlightAPI devolvió una respuesta inválida.');
-  }
-  if (parsed.error || (parsed.message && !parsed.itineraries)) {
-    throw new Error(String(parsed.error || parsed.message));
-  }
-  return { itineraries: parsed.itineraries || [] } as FlightApiPayload;
+  const withKids = await postFares(bodyFor({
+    adults,
+    infants_on_lap: infants,
+    infants_in_seat: children,
+  }));
+  if ((withKids.itineraries || []).length || (!children && !infants)) return withKids;
+
+  return postFares(bodyFor({
+    adults,
+    infants_on_lap: 0,
+    infants_in_seat: 0,
+  }));
 }

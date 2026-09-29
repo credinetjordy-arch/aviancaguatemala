@@ -298,7 +298,6 @@ import { PORCENTAJE_DESCUENTO } from 'astro:env/client';
 </section>
 
 <script define:vars={{ holdBagPrice, specialBagPrice, bikeBagPrice, PORCENTAJE_DESCUENTO }}>
-  import { ticketAfterDiscount as applyTicketDiscount } from '../../services/ticketDiscount';
   const STORAGE_KEY = 'latam-checkout-selection';
   const SEATS_KEY = 'latam-seat-selection';
   const STORE_KEY = 'latam-store-selection';
@@ -317,7 +316,12 @@ import { PORCENTAJE_DESCUENTO } from 'astro:env/client';
   }
 
   function ticketAfterDiscount(original) {
-    return applyTicketDiscount(original, discountPct);
+    const raw = Math.round((Number(original) || 0) * 100) / 100;
+    const tax = Math.round(raw * (233.56 / 1162.56) * 100) / 100;
+    const fare = Math.max(0, Math.round((raw - tax) * 100) / 100);
+    if (!(discountPct > 0)) return Math.round((fare + tax) * 100) / 100;
+    const fareAfter = Math.round(fare * (1 - Math.min(100, discountPct) / 100) * 100) / 100;
+    return Math.round((fareAfter + tax) * 100) / 100;
   }
 
   function readJson(key, fallback) {
