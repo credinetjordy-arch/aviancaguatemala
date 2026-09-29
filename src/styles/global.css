@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family: "LATAM Sans";
+  font-family: "LATAM San";
   src: url("/fonts/latam_sans_light.woff") format("woff");
   font-weight: 300;
   font-style: normal;
