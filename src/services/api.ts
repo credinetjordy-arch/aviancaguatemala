@@ -28,7 +28,7 @@ import {
 import { landingContent } from '../data/landing';
 import { getTicketsUrl } from '../lib/geoRedirect';
 import { buildFareOptions } from '../data/fareBrands';
-import { fetchFlightApi, isoDate, parseFlightApi, sortRecommended, expandLatamHubConnections, uniqueFlights, applyPublishedAviancaFares, type FlightResult } from './flightApi';
+import { fetchFlightApi, isoDate, parseFlightApi, sortRecommended, expandLatamHubConnections, uniqueFlights, applyPublishedAviancaFares, shouldExpandAviancaHubs, type FlightResult } from './flightApi';
 import { buildFlightCodeResolver } from './flightCodes';
 
 const USE_MOCK = import.meta.env.USE_MOCK !== 'false';
@@ -130,18 +130,23 @@ async function fetchResolvedFlights(params: {
 }) {
   const origin = flightCodes.resolve(params.origin)[0];
   const destination = flightCodes.resolve(params.destination)[0];
-  const [payload, extra] = await Promise.all([
-    fetchFlightApi({
-      origin,
-      destination,
-      depart: params.depart,
-      adults: params.adults,
-      children: params.children,
-      infants: params.infants,
-      cabin: params.cabin,
-      trip: 'oneway',
-    }).catch(() => ({ itineraries: [] })),
-    expandLatamHubConnections({
+  const payload = await fetchFlightApi({
+    origin,
+    destination,
+    depart: params.depart,
+    adults: params.adults,
+    children: params.children,
+    infants: params.infants,
+    cabin: params.cabin,
+    trip: 'oneway',
+  }).catch(() => ({ itineraries: [] }));
+  const results = parseFlightApi(payload, params.cabin, {
+    domesticPeru: params.domesticPeru,
+    originPeru: params.originPeru,
+    destEcuador: params.destEcuador,
+  });
+  const extra = shouldExpandAviancaHubs(origin, destination, results.length)
+    ? await expandLatamHubConnections({
       origin,
       destination,
       depart: params.depart,
@@ -154,13 +159,8 @@ async function fetchResolvedFlights(params: {
         originPeru: params.originPeru,
         destEcuador: params.destEcuador,
       },
-    }).catch(() => [] as FlightResult[]),
-  ]);
-  const results = parseFlightApi(payload, params.cabin, {
-    domesticPeru: params.domesticPeru,
-    originPeru: params.originPeru,
-    destEcuador: params.destEcuador,
-  });
+    }).catch(() => [] as FlightResult[])
+    : [];
   const combined = applyPublishedAviancaFares(
     origin,
     destination,

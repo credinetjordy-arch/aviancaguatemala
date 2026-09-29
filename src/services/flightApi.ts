@@ -370,6 +370,13 @@ function arOperator(code?: string): FlightOperator {
   return { name: 'Aerolíneas Argentinas', code: isArCode(value) ? value : 'AR' };
 }
 
+function aviancaRegionalName(originCode: string, destCode: string, operatingName = '') {
+  if (/costa rica/i.test(operatingName) || originCode === 'SJO' || destCode === 'SJO') {
+    return { name: 'Avianca Costa Rica S.A.', code: 'LR' };
+  }
+  return null;
+}
+
 function refineLatamOperator(
   op: FlightOperator | null,
   originCode: string,
@@ -379,6 +386,8 @@ function refineLatamOperator(
 ): FlightOperator | null {
   if (!op) return null;
   if (isArCode(op.code) || isArName(op.name)) return arOperator(op.code);
+  const regional = aviancaRegionalName(originCode, destCode, op.name);
+  if (regional) return regional;
   if (op.code && LATAM_OPERATOR_NAMES[op.code] && op.code !== 'LA') {
     return { name: LATAM_OPERATOR_NAMES[op.code], code: op.code };
   }
@@ -501,9 +510,8 @@ function aviancaDesdeFromIgnav(price?: { amount?: number; currency?: string }, b
 
 function connectionThroughFare(firstPrice: number, secondPrice: number, stopCount: number, durationMinutes: number) {
   const sum = firstPrice + secondPrice;
-  const peak = Math.max(firstPrice, secondPrice);
   if (stopCount >= 2 && durationMinutes <= 600) return money2(Math.max(280, Math.min(sum * 0.41, 310)));
-  if (stopCount >= 2) return money2(Math.max(peak * 1.06, sum * 0.52));
+  if (stopCount >= 2) return money2(sum * 0.5304);
   return money2(sum * 0.55);
 }
 
@@ -742,7 +750,27 @@ function isLatamStyleItinerary(flight: FlightResult, domesticPeru: boolean) {
   return flight.durationMinutes <= 2160;
 }
 
-const CONNECT_HUBS = ['BOG', 'MDE', 'SAL', 'GUA'];
+const AVIANCA_EUROPE = new Set([
+  'BCN', 'MAD', 'BIO', 'AGP', 'VLC', 'PMI', 'SVQ', 'LHR', 'LGW', 'MAN',
+  'CDG', 'ORY', 'FCO', 'MXP', 'AMS', 'FRA', 'MUC', 'ZRH', 'GVA', 'LIS', 'OPO',
+]);
+
+export function shouldExpandAviancaHubs(origin: string, destination: string, throughCount: number) {
+  const o = String(origin || '').toUpperCase();
+  const d = String(destination || '').toUpperCase();
+  if (AVIANCA_EUROPE.has(o) || AVIANCA_EUROPE.has(d)) return true;
+  if ((o === 'GUA' && d === 'MIA') || (o === 'MIA' && d === 'GUA')) return true;
+  return throughCount < 3;
+}
+
+function connectHubs(origin: string, destination: string) {
+  const o = String(origin || '').toUpperCase();
+  const d = String(destination || '').toUpperCase();
+  const hubs = (AVIANCA_EUROPE.has(o) || AVIANCA_EUROPE.has(d))
+    ? ['SJO']
+    : ['BOG', 'SAL', 'SJO', 'MDE'];
+  return hubs.filter((hub) => hub !== o && hub !== d);
+}
 
 function clockMinutes(time: string) {
   const match = String(time || '').match(/^(\d{2}):(\d{2})/);
@@ -838,7 +866,7 @@ export async function expandLatamHubConnections(params: {
   cabin: string;
   parseOpts?: { domesticPeru?: boolean; originPeru?: boolean; destEcuador?: boolean };
 }): Promise<FlightResult[]> {
-  const hubs = CONNECT_HUBS.filter((hub) => hub !== params.origin && hub !== params.destination);
+  const hubs = connectHubs(params.origin, params.destination);
   const shared = {
     adults: params.adults,
     children: params.children,
@@ -880,11 +908,9 @@ function viaLatamHub(flight: FlightResult) {
 
 export function sortRecommended(a: FlightResult, b: FlightResult) {
   return (
-    a.stopCount - b.stopCount ||
-    Number(Boolean(a.arriveNextDay)) - Number(Boolean(b.arriveNextDay)) ||
+    String(a.depart || '').localeCompare(String(b.depart || '')) ||
     a.durationMinutes - b.durationMinutes ||
-    a.price - b.price ||
-    String(a.depart || '').localeCompare(String(b.depart || ''))
+    a.price - b.price
   );
 }
 
