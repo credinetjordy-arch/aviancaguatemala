@@ -2011,8 +2011,8 @@ html[lang="es-GT"] .cookie {
   }
 
   html[lang="es-GT"] body.av-offers-page .av-header__logo {
-    overflow: hidden;
-    width: 48px;
+    overflow: visible;
+    width: auto;
     height: 32px;
   }
 
@@ -2020,7 +2020,7 @@ html[lang="es-GT"] .cookie {
     height: 32px;
     width: auto;
     max-width: none;
-    margin-left: -86px;
+    margin-left: 0;
   }
 
   html[lang="es-GT"] body.av-offers-page .av-cart {
