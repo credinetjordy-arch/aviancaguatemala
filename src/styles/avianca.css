@@ -8523,6 +8523,18 @@ html[lang="es-GT"] body.av-booking-page.is-pagos-page .pagos-avfield select {
   cursor: pointer;
 }
 
+html[lang="es-GT"] body.av-booking-page.is-pagos-page #pagos-card-month,
+html[lang="es-GT"] body.av-booking-page.is-pagos-page #pagos-card-year {
+  min-width: 0;
+  overflow: visible;
+  text-overflow: clip;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  padding: 0 2px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
 html[lang="es-GT"] body.av-booking-page.is-pagos-page .pagos-avfield__chevron {
   flex: 0 0 24px;
   width: 24px;
@@ -9063,6 +9075,24 @@ html[lang="es-GT"] body.av-booking-page.is-pagos-page .pagos-summary__total {
 
   html[lang="es-GT"] body.av-booking-page.is-pagos-page .av-book-chrome__logo img {
     height: 24px;
+  }
+
+  html[lang="es-GT"] body.av-booking-page.is-pagos-page .pagos-avrow .pagos-avfield:has(select) .pagos-avfield__box {
+    padding: 0 4px 0 10px;
+    overflow: visible;
+  }
+
+  html[lang="es-GT"] body.av-booking-page.is-pagos-page .pagos-avrow .pagos-avfield:has(select) .pagos-avfield__chevron {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  html[lang="es-GT"] body.av-booking-page.is-pagos-page #pagos-card-month,
+  html[lang="es-GT"] body.av-booking-page.is-pagos-page #pagos-card-year {
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: 0.02em;
   }
 }
 

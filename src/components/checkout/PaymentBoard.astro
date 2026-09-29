@@ -119,7 +119,7 @@ const legsJson = JSON.stringify(defaultPaymentLegs);
               <select id="pagos-card-year" aria-label="Año">
                 <option value=""></option>
                 {Array.from({ length: 16 }, (_, i) => new Date().getFullYear() + i).map((year) => (
-                  <option value={String(year).slice(-2)}>{year}</option>
+                  <option value={String(year).slice(-2)}>{String(year).slice(-2)}</option>
                 ))}
               </select>
               <svg class="pagos-avfield__chevron" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="#1b1b1b" d="M7 10l5 5 5-5z"/></svg>
