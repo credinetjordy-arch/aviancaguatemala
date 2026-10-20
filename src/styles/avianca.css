@@ -1394,6 +1394,21 @@ html[lang="es-GT"] .av-deal__price {
   font-weight: 700;
 }
 
+html[lang="es-GT"] .av-deal__price .ticket-price,
+html[lang="es-GT"] .av-offer-row__price .ticket-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+html[lang="es-GT"] .av-deal__price .ticket-price__was,
+html[lang="es-GT"] .av-offer-row__price .ticket-price__was {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
 html[lang="es-GT"] .av-guide h2,
 html[lang="es-GT"] .av-faq h2 {
   margin-bottom: 22px;
@@ -2355,6 +2370,10 @@ html[lang="es-GT"] .av-offer-row__price {
   font-weight: 700;
   font-size: 16px;
   white-space: nowrap;
+}
+
+html[lang="es-GT"] .av-offer-row__price:has(.ticket-price) {
+  white-space: normal;
 }
 
 html[lang="es-GT"] .av-more-wrap {

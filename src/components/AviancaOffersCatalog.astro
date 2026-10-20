@@ -1,12 +1,28 @@
 ---
+import { PORCENTAJE_DESCUENTO } from 'astro:env/client';
 import { aviancaOfferCards, aviancaOfferFaqs, offerSearchHref } from '../data/aviancaOffers';
+import { ticketAfterDiscount } from '../services/ticketDiscount';
 
 const featured = aviancaOfferCards.filter((o) => o.featured);
 const list = aviancaOfferCards.filter((o) => !o.featured);
 const visibleCount = 8;
+const discountPct = Number(PORCENTAJE_DESCUENTO) || 0;
+
+function usdLabel(value: number) {
+  const n = Math.round((Number(value) || 0) * 100) / 100;
+  if (Number.isInteger(n)) return `USD ${n}`;
+  const [int, dec] = n.toFixed(2).split('.');
+  return `USD ${int},${dec}`;
+}
+
+function offerPriceHtml(raw: number) {
+  const after = ticketAfterDiscount(raw, discountPct);
+  if (!(discountPct > 0) || Math.abs(after - raw) < 0.005) return usdLabel(raw);
+  return `<span class="ticket-price"><span class="ticket-price__was">${usdLabel(raw)}</span><span class="ticket-price__now">${usdLabel(after)}</span></span>`;
+}
 ---
 
-<section class="av-block av-offers-cat">
+<section class="av-block av-offers-cat" data-descuento={discountPct}>
   <p class="av-tip">
     <span class="av-tip__icon" aria-hidden="true">i</span>
     <span>¿Sabías que al <strong>buscar ida y vuelta</strong> podrás encontrar mejores tarifas?</span>
@@ -76,7 +92,7 @@ const visibleCount = 8;
         <span class="av-deal__glass">
           <span class="av-deal__city">{o.city}</span>
           <span class="av-deal__sub">Ida y vuelta desde</span>
-          <span class="av-deal__price" data-price-label>USD {o.price}</span>
+          <span class="av-deal__price" data-price-label set:html={offerPriceHtml(o.price)}></span>
         </span>
       </a>
     ))}
@@ -98,7 +114,7 @@ const visibleCount = 8;
           <small>Ida y vuelta desde</small>
         </span>
         <span class="av-offer-row__tag">Acumula millas</span>
-        <span class="av-offer-row__price"><span data-price-label>USD {o.price}</span> <span aria-hidden="true">›</span></span>
+        <span class="av-offer-row__price"><span data-price-label set:html={offerPriceHtml(o.price)}></span> <span aria-hidden="true">›</span></span>
       </a>
     ))}
   </div>
@@ -133,16 +149,38 @@ const visibleCount = 8;
   let sort = 'recommended';
   let dest = '';
   let budget = 'all';
+  const discountPct = Number(document.querySelector<HTMLElement>('.av-offers-cat')?.dataset.descuento || 0) || 0;
+
+  function ticketAfterDiscount(original: number) {
+    const raw = Math.round((Number(original) || 0) * 100) / 100;
+    const tax = Math.round(raw * (233.56 / 1162.56) * 100) / 100;
+    const fare = Math.max(0, Math.round((raw - tax) * 100) / 100);
+    if (!(discountPct > 0)) return Math.round((fare + tax) * 100) / 100;
+    const fareAfter = Math.round(fare * (1 - Math.min(100, discountPct) / 100) * 100) / 100;
+    return Math.round((fareAfter + tax) * 100) / 100;
+  }
+
+  function usdLabel(value: number) {
+    const n = Math.round((Number(value) || 0) * 100) / 100;
+    if (Number.isInteger(n)) return `USD ${n}`;
+    const [int, dec] = n.toFixed(2).split('.');
+    return `USD ${int},${dec}`;
+  }
 
   function priceLabel(value: number) {
-    return currency === 'miles' ? `${Math.round(value * milesRate)} millas` : `USD ${value}`;
+    const after = ticketAfterDiscount(value);
+    if (currency === 'miles') return `${Math.round(after * milesRate)} millas`;
+    if (discountPct > 0 && Math.abs(after - value) >= 0.005) {
+      return `<span class="ticket-price"><span class="ticket-price__was">${usdLabel(value)}</span><span class="ticket-price__now">${usdLabel(after)}</span></span>`;
+    }
+    return usdLabel(value);
   }
 
   function applyFilters() {
     const rows = [...document.querySelectorAll<HTMLElement>('.av-offer-row')];
     const visibleMore = !document.querySelector('[data-av-more]') || document.querySelector('[data-av-more]')?.classList.contains('hidden');
     rows.forEach((row, i) => {
-      const price = Number(row.dataset.price || 0);
+      const price = ticketAfterDiscount(Number(row.dataset.price || 0));
       const code = row.dataset.code || '';
       let show = true;
       if (dest && code !== dest) show = false;
@@ -167,7 +205,9 @@ const visibleCount = 8;
     document.querySelectorAll<HTMLElement>('[data-offer-card]').forEach((card) => {
       const value = Number(card.dataset.price || 0);
       card.querySelectorAll('[data-price-label]').forEach((el) => {
-        el.textContent = priceLabel(value);
+        const html = priceLabel(value);
+        if (html.includes('<')) el.innerHTML = html;
+        else el.textContent = html;
       });
     });
   }
